@@ -1,0 +1,11 @@
+@Sample.Api_HostAddress = http://localhost:5046
+
+GET {{Sample.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+GET {{Sample.Api_HostAddress}}/weatherforecast?date=2001-01-01
+Accept: application/json
+
+###
