@@ -4,13 +4,14 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Sample.Api.Tests;
 
-// Izmantoju WebApplicationFactory, tas palaiž visu API atmiņā (routing, binding, validācija, JSON),
-// bez īsta servera un specifiska porta, tāpēc ka tas ir ātri un strādā iekš CI.
+// Using WebApplicationFactory, it runs the whole API in memory (routing, binding, validation, JSON),
+// without a real server or a specific port, so it's fast and works in CI.
 //
-// Alternatīvas:
-// * testēt kontrolieri tieši - nepārbauda routing un JSON, nav integrācijas tests
-// * API uz īsta porta - lēnāk, CI var būt portu konflikti, bet tas arī nav slikts variants
-// * Postman/.http - vajag palaistu serveri, ārpus test suite
+// Alternatives:
+// * testing the controller directly - doesn't check routing and JSON, not an integration test
+// * API on a real port - needed when testing real network stuff (HTTPS, browser tests with Playwright),
+//   but for this API it adds nothing over the in-memory server
+// * Postman/.http - needs a running server, outside the test suite
 public class WeatherForecastControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
@@ -20,7 +21,7 @@ public class WeatherForecastControllerTests : IClassFixture<WebApplicationFactor
         _client = factory.CreateClient();
     }
 
-    // datums ir random seeds, tāpēc rezultāts vienmēr ir vienāds
+    // date is the Random seed, so the result is always the same
     [Fact]
     public async Task Get_WithDate_ReturnsSameForecastEveryTime()
     {
@@ -42,7 +43,7 @@ public class WeatherForecastControllerTests : IClassFixture<WebApplicationFactor
         Assert.Equal(expected, actual);
     }
 
-    // result mainās katru dienu, tāpēc pārbaudu tikai iespējamās vērtības
+    // result changes every day, so only checking the possible values
     [Fact]
     public async Task Get_WithoutDate_ReturnsFiveDaysStartingTomorrow()
     {
@@ -54,7 +55,7 @@ public class WeatherForecastControllerTests : IClassFixture<WebApplicationFactor
         Assert.NotNull(forecasts);
         Assert.Equal(5, forecasts.Length);
 
-        // Ap 00:00 serverim jau var būt nākamā diena.
+        // around midnight the server may already be on the next day.
         Assert.InRange(forecasts[0].Date, today.AddDays(1), today.AddDays(2));
 
         for (var i = 0; i < forecasts.Length; i++)
@@ -65,8 +66,7 @@ public class WeatherForecastControllerTests : IClassFixture<WebApplicationFactor
         }
     }
 
-    // nederīgs datums atgriež 400 vēl pirms metode tiek izsaukta un pieliku vēl papildu variantus 
-    // sliktam izsaukumam
+    // invalid date returns 400 before the method is even called, added a few more bad request variants
     [Theory]
     [InlineData("1997-02-30")]
     [InlineData("67")]
@@ -78,7 +78,7 @@ public class WeatherForecastControllerTests : IClassFixture<WebApplicationFactor
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    // papildu pārbauda vai endpoint ir tikai GET
+    // extra check that the endpoint is GET only
     [Fact]
     public async Task Post_ReturnsMethodNotAllowed()
     {
